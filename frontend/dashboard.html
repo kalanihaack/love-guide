@@ -114,7 +114,37 @@
         console.error('Erro ao carregar favoritos:', error);
       }
     }
+    
+// --- INÍCIO DA LÓGICA DE BUSCA AUTOMÁTICA (DEBOUNCE) ---
+    let typingTimer; // Variável que guarda o cronômetro
+    const doneTypingInterval = 500; // Tempo de espera em milissegundos (meio segundo)
 
+    // Escuta cada vez que o usuário solta uma tecla no campo de busca
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      // Limpa o cronômetro anterior se o usuário continuar digitando
+      clearTimeout(typingTimer);
+      
+      const query = this.value.trim();
+      const grid = document.getElementById('searchResultsGrid');
+
+      if (query.length >= 3) {
+        // Se tem 3 ou mais letras, inicia o cronômetro de meio segundo para buscar
+        grid.innerHTML = '<p class="text-gray-400 col-span-full">Buscando...</p>';
+        grid.classList.remove('hidden');
+        typingTimer = setTimeout(performSearch, doneTypingInterval);
+      } else {
+        // Se o usuário apagar o texto, esconde a área de resultados
+        grid.classList.add('hidden');
+        grid.innerHTML = '';
+      }
+    });
+
+    // Se o usuário mudar de Filme para Música, limpa a busca
+    document.getElementById('searchType').addEventListener('change', function() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchResultsGrid').classList.add('hidden');
+    });
+    // --- FIM DA LÓGICA DE BUSCA AUTOMÁTICA ---
     // 3. Função que chama a API quando clicamos em "Buscar"
     async function performSearch() {
       const type = document.getElementById('searchType').value;
