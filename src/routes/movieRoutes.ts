@@ -11,5 +11,6 @@ router.use(authMiddleware);
 router.get('/search', movieController.search);
 router.post('/favorites', movieController.addFavorite);
 router.delete('/favorites/:id', movieController.removeFavorite);
+router.patch('/favorites/:id/rating', authMiddleware, movieController.updateRating);
 
 export { router as movieRoutes };

@@ -74,4 +74,21 @@ export class MovieController {
       return res.status(500).json({ error: 'Erro ao remover filme.' });
     }
   }
+// Atualiza a nota do filme
+  async updateRating(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const { id } = req.params;
+      const { rating } = req.body;
+
+      const updatedMovie = await prisma.favoriteMovie.updateMany({
+        where: { id: id, user_id: userId },
+        data: { rating: Number(rating) }
+      });
+
+      return res.json({ message: 'Nota atualizada!', updatedMovie });
+    } catch (error) {
+      return res.status(500).json({ error: 'Erro ao dar nota.' });
+    }
+  }
 } // <-- A chave que estava faltando para fechar a classe!

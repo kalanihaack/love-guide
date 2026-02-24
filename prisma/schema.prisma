@@ -26,8 +26,8 @@ model FavoriteMovie {
   movie_api_id String
   title        String
   cover_url    String?
-  overview     String?  // <-- Adicione esta linha
-  director     String?  // (Pode deixar essa se ela já estiver aí)
+  overview     String?  
+  rating       Int      @default(0) // <-- ADICIONE ESTA LINHA (0 significa sem nota)
   user_id      String
   user         User     @relation(fields: [user_id], references: [id])
   created_at   DateTime @default(now())
