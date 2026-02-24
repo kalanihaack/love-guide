@@ -64,7 +64,7 @@
     // 2. A função principal que busca e monta os dados do Feed
     async function loadFavorites() {
       try {
-        const response = await fetch('http://localhost:3333/music/me/favorites', {
+        const response = await fetch('https://love-guide.onrender.com/music/me/favorites', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -172,7 +172,7 @@
       let endpoint = '';
 
       if (type === 'music') {
-        endpoint = 'http://localhost:3333/music/favorites';
+        endpoint = 'https://love-guide.onrender.com/music/favorites';
         bodyData = {
           song_api_id: item.api_id,
           title: item.title,
@@ -180,7 +180,7 @@
           cover_url: item.cover_url
         };
       } else {
-        endpoint = 'http://localhost:3333/movies/favorites';
+        endpoint = 'https://love-guide.onrender.com/movies/favorites';
         bodyData = {
           movie_api_id: item.api_id,
           title: item.title,
@@ -215,7 +215,7 @@
       if (!confirm('Tem certeza que deseja remover este favorito?')) return;
 
       try {
-        const response = await fetch(`http://localhost:3333/${type}/favorites/${id}`, {
+        const response = await fetch(`hhttps://love-guide.onrender.com/${type}/favorites/${id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
