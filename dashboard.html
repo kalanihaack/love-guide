@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Guide - Meu Feed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen font-sans">
+
+  <nav class="bg-gray-800 p-4 shadow-md flex justify-between items-center border-b border-gray-700">
+    <h1 class="text-2xl font-bold text-pink-500 tracking-wide">Love Guide 💖</h1>
+    <button onclick="logout()" class="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">
+      Sair
+    </button>
+  </nav>
+
+  <main class="container mx-auto p-6 max-w-6xl">
+
+    <div class="mb-10 bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+      <h2 class="text-xl font-semibold mb-4 text-pink-500">Adicionar Novo Favorito</h2>
+      <div class="flex flex-col md:flex-row gap-4">
+        
+        <select id="searchType" class="p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500 md:w-1/4">
+          <option value="music">Música</option>
+          <option value="movies">Filme</option>
+        </select>
+        
+        <input type="text" id="searchInput" placeholder="Digite o nome..." class="flex-1 p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500">
+        
+        <button onclick="performSearch()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-6 rounded transition duration-200">
+          Buscar
+        </button>
+      </div>
+
+      <div id="searchResultsGrid" class="mt-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 hidden"></div>
+    </div>
+    
+    <div class="mb-10">
+      <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Minhas Músicas Favoritas</h2>
+      <div id="songsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        </div>
+    </div>
+
+    <div>
+      <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Meus Filmes Favoritos</h2>
+      <div id="moviesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        </div>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. O "Segurança" do Frontend: Verifica se tem token
+    const token = localStorage.getItem('loveguide_token');
+    
+    if (!token) {
+      window.location.href = 'index.html'; // Sem token? Volta pro login.
+    }
+
+    // Variável para guardar os resultados da busca atual
+    let currentSearchResults = [];
+
+    // 2. A função principal que busca e monta os dados do Feed
+    async function loadFavorites() {
+      try {
+        const response = await fetch('https://love-guide.onrender.com/music/me/favorites', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await response.json();
+        
+        // Montando a galeria de Músicas com botão de Excluir
+        const songsGrid = document.getElementById('songsGrid');
+        if (data.songs.length === 0) {
+          songsGrid.innerHTML = '<p class="text-gray-400 col-span-full">Nenhuma música salva ainda.</p>';
+        } else {
+          songsGrid.innerHTML = data.songs.map(song => `
+            <div class="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 hover:border-pink-500 transition cursor-pointer">
+              <button onclick="deleteItem('${song.id}', 'music')" class="absolute top-2 right-2 bg-red-600 hover:bg-red-800 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold shadow">&times;</button>
+              <img src="${song.cover_url}" alt="${song.title}" class="w-full h-48 object-cover">
+              <div class="p-3">
+                <p class="font-bold text-sm truncate" title="${song.title}">${song.title}</p>
+                <p class="text-xs text-gray-400 truncate" title="${song.artist}">${song.artist}</p>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // Montando a galeria de Filmes com botão de Excluir
+        const moviesGrid = document.getElementById('moviesGrid');
+        if (data.movies.length === 0) {
+          moviesGrid.innerHTML = '<p class="text-gray-400 col-span-full">Nenhum filme salvo ainda.</p>';
+        } else {
+          moviesGrid.innerHTML = data.movies.map(movie => `
+            <div class="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 hover:border-pink-500 transition cursor-pointer">
+              <button onclick="deleteItem('${movie.id}', 'movies')" class="absolute top-2 right-2 bg-red-600 hover:bg-red-800 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold shadow">&times;</button>
+              <img src="${movie.cover_url}" alt="${movie.title}" class="w-full h-64 object-cover">
+              <div class="p-3">
+                <p class="font-bold text-sm truncate" title="${movie.title}">${movie.title}</p>
+              </div>
+            </div>
+          `).join('');
+        }
+
+      } catch (error) {
+        console.error('Erro ao carregar favoritos:', error);
+      }
+    }
+    
+// --- INÍCIO DA LÓGICA DE BUSCA AUTOMÁTICA (DEBOUNCE) ---
+    let typingTimer; // Variável que guarda o cronômetro
+    const doneTypingInterval = 500; // Tempo de espera em milissegundos (meio segundo)
+
+    // Escuta cada vez que o usuário solta uma tecla no campo de busca
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+      // Limpa o cronômetro anterior se o usuário continuar digitando
+      clearTimeout(typingTimer);
+      
+      const query = this.value.trim();
+      const grid = document.getElementById('searchResultsGrid');
+
+      if (query.length >= 3) {
+        // Se tem 3 ou mais letras, inicia o cronômetro de meio segundo para buscar
+        grid.innerHTML = '<p class="text-gray-400 col-span-full">Buscando...</p>';
+        grid.classList.remove('hidden');
+        typingTimer = setTimeout(performSearch, doneTypingInterval);
+      } else {
+        // Se o usuário apagar o texto, esconde a área de resultados
+        grid.classList.add('hidden');
+        grid.innerHTML = '';
+      }
+    });
+
+    // Se o usuário mudar de Filme para Música, limpa a busca
+    document.getElementById('searchType').addEventListener('change', function() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchResultsGrid').classList.add('hidden');
+    });
+    // --- FIM DA LÓGICA DE BUSCA AUTOMÁTICA ---
+    // 3. Função que chama a API quando clicamos em "Buscar"
+    async function performSearch() {
+      const type = document.getElementById('searchType').value;
+      const query = document.getElementById('searchInput').value;
+      const grid = document.getElementById('searchResultsGrid');
+
+      if (!query) return;
+
+      grid.innerHTML = '<p class="text-gray-400 col-span-full">Buscando...</p>';
+      grid.classList.remove('hidden');
+
+      try {
+        const response = await fetch(`https://love-guide.onrender.com/${type}/search?query=${query}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        currentSearchResults = await response.json();
+
+        if (currentSearchResults.length === 0) {
+          grid.innerHTML = '<p class="text-gray-400 col-span-full">Nenhum resultado encontrado.</p>';
+          return;
+        }
+
+        if (type === 'music') {
+          grid.innerHTML = currentSearchResults.map((song, index) => `
+            <div class="bg-gray-700 rounded overflow-hidden shadow">
+              <img src="${song.cover_url}" class="w-full h-40 object-cover">
+              <div class="p-2">
+                <p class="font-bold text-xs truncate" title="${song.title}">${song.title}</p>
+                <p class="text-xs text-gray-400 truncate">${song.artist}</p>
+                <button onclick="saveItem(${index}, 'music')" class="mt-2 w-full bg-pink-500 hover:bg-pink-600 text-white text-xs py-1 rounded transition">Salvar</button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          grid.innerHTML = currentSearchResults.map((movie, index) => `
+            <div class="bg-gray-700 rounded overflow-hidden shadow">
+              <img src="${movie.poster_url || 'https://via.placeholder.com/500x750?text=Sem+Capa'}" class="w-full h-48 object-cover">
+              <div class="p-2">
+                <p class="font-bold text-xs truncate" title="${movie.title}">${movie.title}</p>
+                <button onclick="saveItem(${index}, 'movies')" class="mt-2 w-full bg-pink-500 hover:bg-pink-600 text-white text-xs py-1 rounded transition">Salvar</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+         grid.innerHTML = '<p class="text-red-500 col-span-full">Erro na comunicação com o servidor.</p>';
+      }
+    }
+
+    // 4. Função que envia o POST para o banco de dados
+    async function saveItem(index, type) {
+      const item = currentSearchResults[index];
+      let bodyData = {};
+      let endpoint = '';
+
+      if (type === 'music') {
+        endpoint = 'https://love-guide.onrender.com/music/favorites';
+        bodyData = {
+          song_api_id: item.api_id,
+          title: item.title,
+          artist: item.artist,
+          cover_url: item.cover_url
+        };
+      } else {
+        endpoint = 'https://love-guide.onrender.com/movies/favorites';
+        bodyData = {
+          movie_api_id: item.api_id,
+          title: item.title,
+          overview: item.overview,
+          poster_url: item.poster_url
+        };
+      }
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        });
+
+        if (response.ok) {
+          document.getElementById('searchResultsGrid').classList.add('hidden');
+          loadFavorites(); 
+        } else {
+          alert('Erro ao salvar favorito. Ele já existe?');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    // 5. Função que deleta um favorito do banco de dados
+    async function deleteItem(id, type) {
+      if (!confirm('Tem certeza que deseja remover este favorito?')) return;
+
+      try {
+        const response = await fetch(`https://love-guide.onrender.com/${type}/favorites/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          loadFavorites(); // Atualiza a tela após deletar
+        } else {
+          alert('Erro ao tentar remover o item.');
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Erro de conexão com o servidor.');
+      }
+    }
+
+    // 6. Função de Logout
+    function logout() {
+      localStorage.removeItem('loveguide_token');
+      window.location.href = 'index.html';
+    }
+
+    // Dá o "play" na função assim que a tela carrega
+    loadFavorites();
+  </script>
+</body>
+</html>
