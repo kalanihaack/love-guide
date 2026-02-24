@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { authRoutes } from './routes/authRoutes';
 import { musicRoutes } from './routes/musicRoutes';
 import { movieRoutes } from './routes/movieRoutes'; // Importe aqui
+import userRoutes from './routes/userRoutes';
 
 dotenv.config();
 
@@ -13,7 +14,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/music', musicRoutes);
 app.use('/movies', movieRoutes); // Use aqui
-
+app.use(userRoutes); // <-- Adicione esta linha!
 
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
