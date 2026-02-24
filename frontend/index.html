@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Guide - Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 flex items-center justify-center h-screen">
+
+  <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
+    <h1 class="text-3xl font-bold text-white text-center mb-6">Love Guide 💖</h1>
+    
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-gray-400 mb-1">Email</label>
+        <input type="email" id="email" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500" required>
+      </div>
+      
+      <div>
+        <label class="block text-gray-400 mb-1">Senha</label>
+        <input type="password" id="password" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500" required>
+      </div>
+
+      <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+        Entrar
+      </button>
+    </form>
+
+    <div class="mt-6 text-center">
+      <p class="text-gray-400 text-sm">Ainda não tem uma conta? 
+        <a href="register.html" class="text-pink-500 hover:text-pink-400 font-semibold transition">Cadastre-se</a>
+      </p>
+    </div>
+    
+    <p id="errorMessage" class="text-red-500 text-sm mt-4 hidden text-center"></p>
+  </div>
+
+  <script>
+    // Aqui entra a lógica do Javascript para falar com o Backend
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); // Evita que a página recarregue
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+      
+      try {
+        // Faz a requisição POST para a sua API rodando no Node
+        const response = await fetch('http://localhost:3333/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Se o login der certo, salvamos o Token gigante no navegador!
+          localStorage.setItem('loveguide_token', data.token);
+          
+          // E redirecionamos o usuário para a tela principal
+          window.location.href = 'dashboard.html';
+        } else {
+          // Se errar a senha, mostra o erro do backend
+          errorMessage.textContent = data.error;
+          errorMessage.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorMessage.textContent = "Erro ao conectar com o servidor.";
+        errorMessage.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

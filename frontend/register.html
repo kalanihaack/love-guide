@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Guide - Cadastro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 flex items-center justify-center h-screen font-sans">
+
+  <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96 border border-gray-700">
+    <h1 class="text-3xl font-bold text-pink-500 text-center mb-6">Criar Conta 💖</h1>
+    
+    <form id="registerForm" class="space-y-4">
+      <div>
+        <label class="block text-gray-400 mb-1 text-sm">Nome</label>
+        <input type="text" id="name" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-400 mb-1 text-sm">Email</label>
+        <input type="email" id="email" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500" required>
+      </div>
+      
+      <div>
+        <label class="block text-gray-400 mb-1 text-sm">Senha</label>
+        <input type="password" id="password" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500" required>
+      </div>
+
+      <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded transition duration-200 mt-2">
+        Finalizar Cadastro
+      </button>
+    </form>
+    
+    <p id="errorMessage" class="text-red-500 text-sm mt-4 hidden text-center"></p>
+
+    <div class="mt-6 text-center">
+      <p class="text-gray-400 text-sm">Já possui uma conta? 
+        <a href="index.html" class="text-pink-500 hover:text-pink-400 font-semibold transition">Faça Login</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault(); // Evita que a página recarregue
+      
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+      
+      try {
+        // Envia os dados para a rota de registro do backend
+        const response = await fetch('http://localhost:3333/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Se o backend retornar sucesso, avisa e manda pro login
+          alert('Conta criada com sucesso! Faça login para entrar.');
+          window.location.href = 'index.html';
+        } else {
+          // Mostra o erro (ex: "Email já cadastrado")
+          errorMessage.textContent = data.error || 'Erro ao criar conta.';
+          errorMessage.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorMessage.textContent = "Erro ao conectar com o servidor. O backend está rodando?";
+        errorMessage.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -23,14 +23,14 @@ model User {
 
 model FavoriteMovie {
   id           String   @id @default(uuid())
-  movie_api_id String   // ID do filme na API do TMDB
+  movie_api_id String
   title        String
-  director     String?  // O "?" significa que é opcional
   cover_url    String?
-  created_at   DateTime @default(now())
-  
+  overview     String?  // <-- Adicione esta linha
+  director     String?  // (Pode deixar essa se ela já estiver aí)
   user_id      String
   user         User     @relation(fields: [user_id], references: [id])
+  created_at   DateTime @default(now())
 
   @@map("favorite_movies")
 }

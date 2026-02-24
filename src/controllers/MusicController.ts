@@ -71,4 +71,45 @@ export class MusicController {
       return res.status(500).json({ error: 'Erro ao listar favoritos.' });
     }
   }
+
+  // No seu controller (ex: MusicController.ts)
+async getFullFeed(req: Request, res: Response) {
+  try {
+    const userId = (req as any).userId;
+
+    // Busca as duas listas em paralelo para ser mais rápido
+    const [songs, movies] = await Promise.all([
+      prisma.favoriteSong.findMany({ where: { user_id: userId } }),
+      prisma.favoriteMovie.findMany({ where: { user_id: userId } })
+    ]);
+
+    return res.json({
+      songs,
+      movies
+    });
+  } catch (error: any) {
+    // Agora vamos ver a fofoca completa do erro!
+    console.error(error);
+    return res.status(500).json({ 
+      error: 'Erro ao carregar o feed de favoritos.',
+      detalhes: error.message || String(error)
+    });
+  }
+}
+// Remove a música dos favoritos
+  async removeFavorite(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const { id } = req.params; // Pega o ID da URL
+
+      // deleteMany garante que só vai deletar se o ID existir E pertencer a este usuário
+      await prisma.favoriteSong.deleteMany({
+        where: { id: id, user_id: userId },
+      });
+
+      return res.json({ message: 'Música removida!' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Erro ao remover música.' });
+    }
+  }
 }

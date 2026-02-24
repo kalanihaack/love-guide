@@ -4,7 +4,9 @@
   "description": "API em Node.js com TypeScript e Prisma",
   "main": "src/server.ts",
   "scripts": {
-    "dev": "ts-node-dev --transpile-only --ignore-watch node_modules src/server.ts"
+    "dev": "ts-node-dev --transpile-only --ignore-watch node_modules src/server.ts",
+    "build": "npx tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "Kalani",
