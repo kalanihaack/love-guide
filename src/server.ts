@@ -5,6 +5,7 @@ import { authRoutes } from './routes/authRoutes';
 import { musicRoutes } from './routes/musicRoutes';
 import { movieRoutes } from './routes/movieRoutes'; // Importe aqui
 import userRoutes from './routes/userRoutes';
+import friendRoutes from './routes/friendRoutes';
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.use('/auth', authRoutes);
 app.use('/music', musicRoutes);
 app.use('/movies', movieRoutes); // Use aqui
 app.use(userRoutes); // <-- Adicione esta linha!
+app.use(friendRoutes);
 
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {

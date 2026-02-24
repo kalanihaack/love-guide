@@ -180,9 +180,46 @@
       window.open(`https://open.spotify.com/search/${query}`, '_blank');
     }
 
-    // Função vazia (por enquanto) para o sistema de amizades
-    function sendFriendRequest() {
-      alert("A funcionalidade de enviar convite será conectada ao backend na próxima etapa!");
+// Função para enviar o convite de amizade
+    async function sendFriendRequest() {
+      if (!currentProfileId) return;
+
+      const btn = document.getElementById('addFriendBtn');
+      
+      // Feedback visual enquanto carrega
+      btn.disabled = true;
+      btn.textContent = 'A enviar...';
+
+      try {
+        const response = await fetch(`${API_URL}/friends/request`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          // Enviamos o ID do perfil que estamos a ver neste momento
+          body: JSON.stringify({ receiver_id: currentProfileId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Sucesso! Mudamos o botão para cinzento e indicamos que foi enviado
+          btn.textContent = '✓ Convite Enviado';
+          btn.classList.replace('bg-green-600', 'bg-gray-600');
+          btn.classList.replace('hover:bg-green-700', 'hover:bg-gray-600');
+        } else {
+          // Exibe o erro (ex: "Já existe um convite")
+          alert(data.error || 'Erro ao enviar convite.');
+          btn.disabled = false;
+          btn.textContent = '+ Adicionar Amigo';
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Erro de conexão com o servidor.');
+        btn.disabled = false;
+        btn.textContent = '+ Adicionar Amigo';
+      }
     }
   </script>
 </body>

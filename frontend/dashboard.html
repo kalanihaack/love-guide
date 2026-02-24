@@ -34,7 +34,11 @@
       </div>
       <div id="searchResultsGrid" class="mt-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 hidden"></div>
     </div>
-    
+    <div id="friendRequestsSection" class="mb-10 hidden">
+      <h2 class="text-xl font-semibold mb-4 text-pink-500 border-b border-gray-700 pb-2">Convites de Amizade Recebidos 🔔</h2>
+      <div id="friendRequestsList" class="space-y-3">
+        </div>
+    </div>
     <div class="mb-10">
       <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Minhas Músicas Favoritas</h2>
       <div id="songsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -247,13 +251,70 @@
       const query = encodeURIComponent(`${title} ${artist}`);
       window.open(`https://open.spotify.com/search/${query}`, '_blank');
     }
-
+// Busca convites pendentes no banco de dados
+    async function loadFriendRequests() {
+      try {
+        const response = await fetch(`${API_URL}/friends/requests`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const requests = await response.json();
+          const section = document.getElementById('friendRequestsSection');
+          const list = document.getElementById('friendRequestsList');
+          
+          // Se tiver convites, exibe a seção. Se não tiver, esconde.
+          if (requests.length > 0) {
+            section.classList.remove('hidden');
+            list.innerHTML = requests.map(req => `
+              <div class="bg-gray-800 p-4 rounded border border-gray-700 flex justify-between items-center shadow">
+                <div>
+                  <p class="font-bold text-white text-lg">${req.sender.name}</p>
+                  <p class="text-sm text-gray-400">${req.sender.email}</p>
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="respondRequest('${req.id}', 'ACCEPTED')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold transition shadow">Aceitar</button>
+                  <button onclick="respondRequest('${req.id}', 'REJECTED')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-bold transition shadow">Recusar</button>
+                </div>
+              </div>
+            `).join('');
+          } else {
+            section.classList.add('hidden');
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar convites:", error);
+      }
+    }
+    // Envia a resposta (Aceitar ou Recusar) para a API
+    async function respondRequest(id, action) {
+      try {
+        const response = await fetch(`${API_URL}/friends/requests/${id}`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ action })
+        });
+        
+        if (response.ok) {
+          loadFriendRequests(); // Recarrega a lista para o convite sumir da tela
+        } else {
+          alert('Erro ao processar o convite.');
+        }
+      } catch (error) {
+        console.error("Erro ao responder:", error);
+      }
+    }
     function logout() {
       localStorage.removeItem('loveguide_token');
       window.location.href = 'index.html';
     }
 
     loadFavorites();
+    loadFavorites();
+    loadFriendRequests(); // <-- Adicione esta linha para ele buscar os convites assim que você logar!
   </script>
 </body>
 </html>
