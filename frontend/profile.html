@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Guide - Procurar Amigos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen font-sans">
+
+  <nav class="bg-gray-800 p-4 shadow-md flex justify-between items-center border-b border-gray-700">
+    <h1 class="text-2xl font-bold text-pink-500 tracking-wide">Love Guide 💖</h1>
+    <div class="flex gap-4">
+      <a href="dashboard.html" class="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">
+        ← Voltar ao Meu Feed
+      </a>
+    </div>
+  </nav>
+
+  <main class="container mx-auto p-6 max-w-6xl">
+
+    <div class="mb-10 bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex flex-col items-center">
+      <h2 class="text-xl font-semibold mb-4 text-pink-500">Encontrar Perfil</h2>
+      <div class="flex w-full max-w-lg gap-2">
+        <input type="email" id="emailSearch" placeholder="Digite o email do usuário..." class="flex-1 p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-pink-500">
+        <button onclick="searchUser()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-6 rounded transition duration-200">
+          Buscar
+        </button>
+      </div>
+      <p id="searchMessage" class="text-sm mt-3 text-gray-400 hidden"></p>
+    </div>
+
+    <div id="profileHeader" class="mb-10 bg-gray-800 p-6 rounded-lg shadow-lg border border-pink-500 flex justify-between items-center hidden">
+      <div>
+        <h2 id="profileName" class="text-3xl font-bold text-white"></h2>
+        <p id="profileEmail" class="text-gray-400"></p>
+      </div>
+      <button id="addFriendBtn" onclick="sendFriendRequest()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full shadow transition duration-200 hidden">
+        + Adicionar Amigo
+      </button>
+    </div>
+    
+    <div id="profileContent" class="hidden">
+      <div class="mb-10">
+        <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Músicas Favoritas</h2>
+        <div id="friendSongsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Filmes Favoritos</h2>
+        <div id="friendMoviesGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ==========================================
+    // COLOQUE A SUA URL DO RENDER AQUI ABAIXO!
+    // ==========================================
+    const API_URL = 'https://love-guide.onrender.com';
+    
+    const token = localStorage.getItem('loveguide_token');
+    if (!token) window.location.href = 'index.html';
+
+    let currentProfileId = null;
+
+    // Função 1: Busca o usuário pelo email
+    async function searchUser() {
+      const email = document.getElementById('emailSearch').value.trim();
+      const msgLabel = document.getElementById('searchMessage');
+      
+      if (!email) return;
+
+      msgLabel.textContent = "Buscando...";
+      msgLabel.classList.remove('hidden', 'text-red-500');
+      msgLabel.classList.add('text-gray-400');
+      
+      // Esconde o perfil se já tiver um aberto
+      document.getElementById('profileHeader').classList.add('hidden');
+      document.getElementById('profileContent').classList.add('hidden');
+
+      try {
+        const response = await fetch(`${API_URL}/users/search?email=${email}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const user = await response.json();
+          msgLabel.classList.add('hidden');
+          currentProfileId = user.id;
+          
+          // Preenche o cabeçalho
+          document.getElementById('profileName').textContent = user.name;
+          document.getElementById('profileEmail').textContent = user.email;
+          document.getElementById('profileHeader').classList.remove('hidden');
+          document.getElementById('addFriendBtn').classList.remove('hidden'); // Exibe o botão de adicionar
+          
+          // Carrega os dados do perfil
+          loadUserProfile(user.id);
+        } else {
+          msgLabel.textContent = "Usuário não encontrado.";
+          msgLabel.classList.remove('text-gray-400');
+          msgLabel.classList.add('text-red-500');
+        }
+      } catch (error) {
+        msgLabel.textContent = "Erro de conexão.";
+        msgLabel.classList.remove('text-gray-400');
+        msgLabel.classList.add('text-red-500');
+      }
+    }
+
+    // Função 2: Carrega os filmes e músicas daquele usuário
+    async function loadUserProfile(userId) {
+      try {
+        const response = await fetch(`${API_URL}/users/${userId}/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const profileData = await response.json();
+          document.getElementById('profileContent').classList.remove('hidden');
+          
+          // Renderiza as Músicas (sem o botão de apagar)
+          const songsGrid = document.getElementById('friendSongsGrid');
+          if (profileData.favoriteSongs.length === 0) {
+            songsGrid.innerHTML = '<p class="text-gray-400 col-span-full">Nenhuma música salva ainda.</p>';
+          } else {
+            songsGrid.innerHTML = profileData.favoriteSongs.map(song => `
+              <div onclick="openSpotify('${song.title}', '${song.artist}')" class="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 hover:border-green-500 transition cursor-pointer group">
+                <img src="${song.cover_url}" alt="${song.title}" class="w-full h-48 object-cover">
+                <div class="p-3">
+                  <p class="font-bold text-sm truncate" title="${song.title}">${song.title}</p>
+                  <p class="text-xs text-gray-400 truncate" title="${song.artist}">${song.artist}</p>
+                  <p class="text-xs text-green-500 mt-2 font-semibold flex items-center gap-1">▶ Ouvir no Spotify</p>
+                </div>
+              </div>
+            `).join('');
+          }
+
+          // Renderiza os Filmes (sem o botão de apagar, e com estrelas "somente leitura")
+          const moviesGrid = document.getElementById('friendMoviesGrid');
+          if (profileData.favoriteMovies.length === 0) {
+            moviesGrid.innerHTML = '<p class="text-gray-400 col-span-full">Nenhum filme salvo ainda.</p>';
+          } else {
+            moviesGrid.innerHTML = profileData.favoriteMovies.map(movie => {
+              const currentRating = movie.rating || 0;
+              let starsHtml = '';
+              for(let i=1; i<=5; i++) {
+                  // Repare que não tem o 'onclick' aqui nas estrelas!
+                  starsHtml += `<span class="text-xl ${i <= currentRating ? 'text-yellow-400' : 'text-gray-600'}">★</span>`;
+              }
+
+              return `
+              <div class="relative bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 hover:border-pink-500 transition">
+                <div class="relative group">
+                  <img src="${movie.cover_url}" alt="${movie.title}" class="w-full h-64 object-cover">
+                  <div class="absolute inset-0 bg-black bg-opacity-90 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center p-4 z-20 pointer-events-none">
+                    <p class="text-xs text-gray-200 text-center overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 10; -webkit-box-orient: vertical;">
+                      ${movie.overview || 'Sinopse não disponível.'}
+                    </p>
+                  </div>
+                </div>
+                <div class="p-3 relative z-20 bg-gray-800">
+                  <p class="font-bold text-sm truncate" title="${movie.title}">${movie.title}</p>
+                  <div class="flex justify-center mt-2 space-x-1">${starsHtml}</div>
+                </div>
+              </div>
+            `}).join('');
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar o perfil completo:", error);
+      }
+    }
+
+    // Função de redirecionar para o Spotify
+    function openSpotify(title, artist) {
+      const query = encodeURIComponent(`${title} ${artist}`);
+      window.open(`https://open.spotify.com/search/${query}`, '_blank');
+    }
+
+    // Função vazia (por enquanto) para o sistema de amizades
+    function sendFriendRequest() {
+      alert("A funcionalidade de enviar convite será conectada ao backend na próxima etapa!");
+    }
+  </script>
+</body>
+</html>

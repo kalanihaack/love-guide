@@ -13,7 +13,9 @@ model User {
   email         String          @unique
   password_hash String
   created_at    DateTime        @default(now())
-  
+  sent_requests     Friendship[] @relation("SentRequests")
+  received_requests Friendship[] @relation("ReceivedRequests")
+
   // Relacionamentos: um usuário pode ter vários filmes e músicas
   movies        FavoriteMovie[]
   songs         FavoriteSong[]
@@ -47,4 +49,19 @@ model FavoriteSong {
   user         User     @relation(fields: [user_id], references: [id])
 
   @@map("favorite_songs")
+}
+
+model Friendship {
+  id          String   @id @default(uuid())
+  sender_id   String
+  receiver_id String
+  status      String   @default("PENDING") // Pode ser PENDING, ACCEPTED ou REJECTED
+  created_at  DateTime @default(now())
+
+  sender      User     @relation("SentRequests", fields: [sender_id], references: [id])
+  receiver    User     @relation("ReceivedRequests", fields: [receiver_id], references: [id])
+
+  // Garante que o usuário A não consiga mandar 50 convites pro usuário B
+  @@unique([sender_id, receiver_id])
+  @@map("friendships")
 }
